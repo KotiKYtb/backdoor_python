@@ -15,6 +15,9 @@ class CommandCenter(QWidget):
         self.conn_manager = ConnectionManager()
         self.command_executor = CommandExecutor(self.conn_manager)
         self.screenshot_manager = ScreenshotManager(self.conn_manager)
+        self.conn_manager = ConnectionManager()
+        self.command_executor = CommandExecutor(self.conn_manager)
+        self.screenshot_manager = ScreenshotManager(self.conn_manager)
 
         self.users = {
             "Benjamin": ("172.16.80.83", 4444)
@@ -39,6 +42,7 @@ class CommandCenter(QWidget):
 
         self.ip_input = QLineEdit(self)
         self.port_input = QLineEdit(self)
+        self.port_input.setPlaceholderText("Entrez le port")
 
         connection_layout.addRow("Utilisateur :", self.user_list)
         connection_layout.addRow("IP :", self.ip_input)
