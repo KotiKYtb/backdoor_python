@@ -18,7 +18,6 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind((host, port))
 s.listen(5)
 print(f"[*] En attente de connexion sur {host}:{port}")
-
 async def execute_command(command):
     process = sp.Popen(command, shell=True, stdout=sp.PIPE, stderr=sp.PIPE, stdin=sp.PIPE, text=True)
     out, err = process.communicate()

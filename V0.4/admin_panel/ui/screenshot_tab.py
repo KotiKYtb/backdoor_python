@@ -43,8 +43,7 @@ class ScreenshotTab(QWidget):
         
         self.screenshots_container = QWidget()
         self.screenshots_layout = QGridLayout(self.screenshots_container)
-        self.screenshots_layout.setSpacing(15)
-        self.screenshots_layout.setContentsMargins(10, 10, 10, 10)
+        self.screenshots_layout.setContentsMargins(5, 5, 5, 5)
         
         self.scroll_area.setWidget(self.screenshots_container)
         layout.addWidget(self.scroll_area)
@@ -127,27 +126,13 @@ class ScreenshotTab(QWidget):
         frame = QFrame()
         frame.setFrameShape(QFrame.Box)
         frame.setFrameShadow(QFrame.Raised)
-        frame.setLineWidth(1)
-        frame.setStyleSheet("QFrame { background-color: #1E293B; border-radius: 8px; }")
         frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         
         container_layout = QVBoxLayout(frame)
-        container_layout.setContentsMargins(8, 8, 8, 8)
         
         # Créer un QLabel pour l'image
         image_label = QLabel()
         image_label.setAlignment(Qt.AlignCenter)
-        image_label.setStyleSheet("""
-            QLabel {
-                background-color: #0F172A;
-                border-radius: 6px;
-                padding: 3px;
-                cursor: pointer;
-            }
-            QLabel:hover {
-                background-color: #334155;
-            }
-        """)
         
         # Charger et redimensionner l'image
         pixmap = QPixmap(image_path)
@@ -193,20 +178,16 @@ class ScreenshotTab(QWidget):
                 
             # Création du panneau d'information
             info_frame = QFrame()
-            info_frame.setStyleSheet("QFrame { background-color: #334155; border-radius: 4px; padding: 5px; }")
             info_layout = QVBoxLayout(info_frame)
             info_layout.setSpacing(2)
             info_layout.setContentsMargins(5, 5, 5, 5)
             
             # Labels pour les informations
             ip_label = QLabel(f"IP: {ip}")
-            ip_label.setStyleSheet("color: #E2E8F0; font-weight: bold;")
             
             hostname_label = QLabel(f"Nom: {hostname}")
-            hostname_label.setStyleSheet("color: #E2E8F0;")
             
             date_label = QLabel(f"Date: {formatted_date}")
-            date_label.setStyleSheet("color: #E2E8F0;")
             
             # Ajouter les informations au panneau
             info_layout.addWidget(ip_label)
@@ -216,11 +197,9 @@ class ScreenshotTab(QWidget):
         except Exception as e:
             # Si erreur dans le parsing du nom de fichier, afficher le nom simplement
             info_frame = QFrame()
-            info_frame.setStyleSheet("QFrame { background-color: #334155; border-radius: 4px; padding: 5px; }")
             info_layout = QVBoxLayout(info_frame)
             
             name_label = QLabel(image_name)
-            name_label.setStyleSheet("color: #E2E8F0;")
             name_label.setWordWrap(True)
             info_layout.addWidget(name_label)
         
@@ -367,33 +346,7 @@ class ImageViewer(QDialog):
         controls_layout.addWidget(self.zoom_info)
         
         layout.addLayout(controls_layout)
-        
-        # Appliquer le style
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #0F172A;
-                color: #E2E8F0;
-            }
-            QScrollArea {
-                background-color: #1E293B;
-                border: 2px solid #334155;
-                border-radius: 8px;
-            }
-            QPushButton {
-                background-color: #1E40AF;
-                color: white;
-                padding: 8px 12px;
-                border-radius: 8px;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #2563EB;
-            }
-            QLabel {
-                color: #E2E8F0;
-            }
-        """)
-        
+                
         # Ajuster l'image à la fenêtre lors de l'ouverture
         self.fit_to_window()
     
