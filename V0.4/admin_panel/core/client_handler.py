@@ -5,13 +5,19 @@ class ClientHandler:
         self.ip = ip
         self.port = port
         self.conn = None
+        self.hostname = None  # Nouvelle propriété pour stocker le hostname
 
     def connect(self):
         try:
             self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.conn.connect((self.ip, self.port))
+            
+            # Récupérer le hostname du client après connexion
+            self.hostname = self.send_command("hostname").strip()
+            
             return True
-        except:
+        except Exception as e:
+            print(f"Erreur lors de la connexion: {e}")
             return False
 
     def send_command(self, command):
@@ -25,3 +31,4 @@ class ClientHandler:
         if self.conn:
             self.conn.close()
             self.conn = None
+            self.hostname = None

