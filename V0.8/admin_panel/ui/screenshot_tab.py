@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QLabel, 
                              QScrollArea, QGridLayout, QHBoxLayout, 
-                             QFrame, QSizePolicy, QDialog, QTabWidget)
+                             QFrame, QSizePolicy, QDialog, QTabWidget, QMessageBox, QFileDialog)
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QFont
 from core.screenshot_handler import ScreenshotHandler
@@ -162,10 +162,19 @@ class ScreenshotTab(QWidget):
             # Chemin du dossier parent pour les screenshots
             parent_dir = os.path.join(os.getenv('APPDATA'), "backdoor_screenshot")
             
+            print(f"MAC récupérée: {mac_address}")
+            print(f"MAC normalisée: {self.normalize_mac_address(mac_address)}")
+            
             if not os.path.exists(parent_dir):
                 self.status_label.setText(f"Dossier de captures d'écran introuvable.")
                 return
                 
+            # Lister tous les dossiers disponibles
+            print("Dossiers disponibles:")
+            for dir_name in os.listdir(parent_dir):
+                if os.path.isdir(os.path.join(parent_dir, dir_name)):
+                    print(f"  - {dir_name} (normalisé: {self.normalize_mac_address(dir_name)})")
+            
             # Rechercher le bon dossier pour cette adresse MAC, quelle que soit la normalisation
             screenshots_dir = None
             
@@ -173,6 +182,7 @@ class ScreenshotTab(QWidget):
             direct_path = os.path.join(parent_dir, mac_address)
             if os.path.exists(direct_path):
                 screenshots_dir = direct_path
+                print(f"Dossier trouvé avec l'adresse MAC directe: {direct_path}")
             else:
                 # 2. Essayer avec l'adresse MAC normalisée
                 normalized_mac = self.normalize_mac_address(mac_address)
@@ -180,6 +190,7 @@ class ScreenshotTab(QWidget):
                 
                 if os.path.exists(normalized_path):
                     screenshots_dir = normalized_path
+                    print(f"Dossier trouvé avec l'adresse MAC normalisée: {normalized_path}")
                 else:
                     # 3. Parcourir tous les dossiers existants et comparer
                     for dir_name in os.listdir(parent_dir):
@@ -188,16 +199,32 @@ class ScreenshotTab(QWidget):
                             # Comparer les deux versions normalisées
                             if self.normalize_mac_address(dir_name).lower() == normalized_mac.lower():
                                 screenshots_dir = dir_path
+                                print(f"Dossier trouvé par normalisation: {dir_path}")
                                 break
                             
                             # Vérifier si l'un contient l'autre après normalisation
                             if self.similar_mac_address(mac_address, dir_name):
                                 screenshots_dir = dir_path
+                                print(f"Dossier trouvé par similarité: {dir_path}")
                                 break
             
             if not screenshots_dir or not os.path.exists(screenshots_dir):
                 self.status_label.setText(f"Aucun dossier de captures trouvé pour {mac_address}")
-                return
+                
+                # Option pour sélectionner manuellement le dossier
+                reply = QMessageBox.question(self, 'Dossier non trouvé', 
+                                            f"Aucun dossier correspondant à {mac_address} n'a été trouvé.\n"
+                                            f"Voulez-vous sélectionner manuellement le dossier?",
+                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                
+                if reply == QMessageBox.Yes:
+                    screenshots_dir = QFileDialog.getExistingDirectory(self, 
+                                        "Sélectionner le dossier de captures d'écran", 
+                                        parent_dir)
+                    if not screenshots_dir:
+                        return
+                else:
+                    return
                 
             # Lister tous les fichiers screenshots
             screenshots = [f for f in os.listdir(screenshots_dir) if f.endswith('.png')]
@@ -222,6 +249,9 @@ class ScreenshotTab(QWidget):
             
         except Exception as e:
             self.status_label.setText(f"[!] Erreur lors du chargement des captures: {str(e)}")
+            print(f"Exception détaillée: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     # Appliquez la même logique à la méthode refresh_webcam_images()
     def refresh_webcam_images(self):
@@ -246,10 +276,19 @@ class ScreenshotTab(QWidget):
             # Chemin du dossier parent pour les captures webcam
             parent_dir = os.path.join(os.getenv('APPDATA'), "backdoor_webcam")
             
+            print(f"MAC récupérée: {mac_address}")
+            print(f"MAC normalisée: {self.normalize_mac_address(mac_address)}")
+            
             if not os.path.exists(parent_dir):
                 self.webcam_status_label.setText(f"Dossier de captures webcam introuvable.")
                 return
                 
+            # Lister tous les dossiers disponibles
+            print("Dossiers disponibles:")
+            for dir_name in os.listdir(parent_dir):
+                if os.path.isdir(os.path.join(parent_dir, dir_name)):
+                    print(f"  - {dir_name} (normalisé: {self.normalize_mac_address(dir_name)})")
+            
             # Rechercher le bon dossier pour cette adresse MAC, quelle que soit la normalisation
             webcam_dir = None
             
@@ -257,6 +296,7 @@ class ScreenshotTab(QWidget):
             direct_path = os.path.join(parent_dir, mac_address)
             if os.path.exists(direct_path):
                 webcam_dir = direct_path
+                print(f"Dossier trouvé avec l'adresse MAC directe: {direct_path}")
             else:
                 # 2. Essayer avec l'adresse MAC normalisée
                 normalized_mac = self.normalize_mac_address(mac_address)
@@ -264,6 +304,7 @@ class ScreenshotTab(QWidget):
                 
                 if os.path.exists(normalized_path):
                     webcam_dir = normalized_path
+                    print(f"Dossier trouvé avec l'adresse MAC normalisée: {normalized_path}")
                 else:
                     # 3. Parcourir tous les dossiers existants et comparer
                     for dir_name in os.listdir(parent_dir):
@@ -272,16 +313,32 @@ class ScreenshotTab(QWidget):
                             # Comparer les deux versions normalisées
                             if self.normalize_mac_address(dir_name).lower() == normalized_mac.lower():
                                 webcam_dir = dir_path
+                                print(f"Dossier trouvé par normalisation: {dir_path}")
                                 break
                             
                             # Vérifier si l'un contient l'autre après normalisation
                             if self.similar_mac_address(mac_address, dir_name):
                                 webcam_dir = dir_path
+                                print(f"Dossier trouvé par similarité: {dir_path}")
                                 break
             
             if not webcam_dir or not os.path.exists(webcam_dir):
                 self.webcam_status_label.setText(f"Aucun dossier de captures webcam trouvé pour {mac_address}")
-                return
+                
+                # Option pour sélectionner manuellement le dossier
+                reply = QMessageBox.question(self, 'Dossier non trouvé', 
+                                            f"Aucun dossier correspondant à {mac_address} n'a été trouvé.\n"
+                                            f"Voulez-vous sélectionner manuellement le dossier?",
+                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                
+                if reply == QMessageBox.Yes:
+                    webcam_dir = QFileDialog.getExistingDirectory(self, 
+                                    "Sélectionner le dossier de captures webcam", 
+                                    parent_dir)
+                    if not webcam_dir:
+                        return
+                else:
+                    return
                 
             # Lister tous les fichiers de captures webcam
             webcam_images = [f for f in os.listdir(webcam_dir) if f.endswith('.jpg')]
@@ -306,20 +363,30 @@ class ScreenshotTab(QWidget):
             
         except Exception as e:
             self.webcam_status_label.setText(f"[!] Erreur lors du chargement des captures webcam: {str(e)}")
+            print(f"Exception détaillée: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     # Fonction pour comparer les adresses MAC
     def similar_mac_address(self, mac1, mac2):
         """Compare deux adresses MAC en ignorant les caractères spéciaux et la casse"""
+        # Afficher pour debug
+        print(f"Comparaison de MAC: {mac1} vs {mac2}")
+        
         # Normaliser les deux adresses MAC
         norm1 = self.normalize_mac_address(mac1).lower()
         norm2 = self.normalize_mac_address(mac2).lower()
         
+        print(f"  Normalisées: {norm1} vs {norm2}")
+        
         # Vérification parfaite
         if norm1 == norm2:
+            print("  Match parfait!")
             return True
             
         # Vérifier si l'un est contenu dans l'autre (pour les cas partiels)
         if norm1 in norm2 or norm2 in norm1:
+            print("  Match partiel (contenu)!")
             return True
             
         # Calcul de similarité plus avancé pour MAC
@@ -327,9 +394,19 @@ class ScreenshotTab(QWidget):
         clean1 = re.sub(r'[^a-fA-F0-9]', '', mac1).lower()
         clean2 = re.sub(r'[^a-fA-F0-9]', '', mac2).lower()
         
+        print(f"  Nettoyées: {clean1} vs {clean2}")
+        
         if clean1 == clean2:
+            print("  Match après nettoyage!")
             return True
         
+        # Comparer les 6 derniers caractères (moins de chance de collision)
+        if len(clean1) >= 6 and len(clean2) >= 6:
+            if clean1[-6:] == clean2[-6:]:
+                print("  Match sur les 6 derniers caractères!")
+                return True
+        
+        print("  Pas de correspondance")
         return False
 
     def _clear_layout(self, layout):
@@ -554,26 +631,47 @@ class ScreenshotTab(QWidget):
     def _get_connected_mac_address(self):
         try:
             result = self.connection_tab.client_handler.send_command("getmac")
+            
+            # Affichage pour debug
+            print("Résultat de getmac:", result)
+            
             if result and not result.startswith("[!]"):
-                # Analyser la sortie de la commande getmac pour extraire l'adresse MAC
+                # Parcourir chaque ligne pour trouver l'adresse MAC
+                found_mac = None
                 for line in result.strip().split('\n'):
-                    if '\\' not in line and ':' in line:  # Simple heuristique pour trouver une ligne avec adresse MAC
+                    # Rechercher des motifs d'adresse MAC (xx:xx:xx:xx:xx:xx ou xx-xx-xx-xx-xx-xx)
+                    mac_pattern1 = re.search(r'([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', line)
+                    mac_pattern2 = re.search(r'([0-9A-Fa-f]{2}-){5}([0-9A-Fa-f]{2})', line)
+                    
+                    if mac_pattern1:
+                        found_mac = mac_pattern1.group(0)
+                        print(f"MAC trouvée (format xx:xx): {found_mac}")
+                        break
+                    elif mac_pattern2:
+                        found_mac = mac_pattern2.group(0)
+                        print(f"MAC trouvée (format xx-xx): {found_mac}")
+                        break
+                
+                if found_mac:
+                    return found_mac
+                    
+                # Si aucune correspondance régulière, utiliser l'ancienne méthode comme fallback
+                print("Utilisation de la méthode fallback pour trouver la MAC")
+                for line in result.strip().split('\n'):
+                    if '\\' not in line and (':' in line or '-' in line):
                         parts = line.split()
                         for part in parts:
                             if ':' in part or '-' in part:
+                                print(f"MAC fallback trouvée: {part.strip()}")
                                 return part.strip()
                 
-                # Fallback à la première MAC trouvée
-                for line in result.strip().split('\n'):
-                    if ':' in line or '-' in line:
-                        parts = line.split()
-                        for part in parts:
-                            if ':' in part or '-' in part:
-                                return part.strip()
+            # Si on ne peut pas obtenir l'adresse MAC, utiliser l'IP
+            ip = self.connection_tab.client_handler.ip
+            print(f"Aucune MAC trouvée, utilisation de l'IP: {ip}")
+            return ip
             
-            # Si on ne peut pas obtenir l'adresse MAC, on utilise l'IP comme identifiant
-            return self.connection_tab.client_handler.ip
-        except Exception:
+        except Exception as e:
+            print(f"Erreur lors de la récupération de l'adresse MAC: {str(e)}")
             return "Unknown"
             
     def resizeEvent(self, event):

