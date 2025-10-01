@@ -1,0 +1,9 @@
+# Ignorer les fichiers Python compilés
+*.pyc
+__pycache__/
+
+# Si tu utilises d'autres IDEs ou éditeurs, ajoute des règles spécifiques, par exemple :
+# Ignorer les fichiers générés par VSCode
+.vscode/
+# Ignorer les fichiers de cache de Python
+*.pyo
